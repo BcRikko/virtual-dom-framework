@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "noImplicitAny": true,
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts"]
+}
