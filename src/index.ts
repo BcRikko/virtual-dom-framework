@@ -1,102 +1,166 @@
-import { View, h } from "./view";
-import { App } from "./app";
-import { ActionTree } from "./action";
+import { ActionTree } from './framework/action'
+import { View, h } from './framework/view'
+import { App } from './framework/controller'
 
-type State = typeof state;
-type Actions = typeof actions;
-
-const state = {
-  tasks: ["virtual dom", "完全に理解する"],
+/**
+ * State: 状態管理
+ */
+type Task = string
+type Form = {
+  /** タスクのタイトル */
+  title: string
+  /** バリデーション結果 */
+  hasError: boolean
+}
+type State = {
+  /** タスク一覧 */
+  tasks: Task[]
+  /** フォームの状態 */
+  form: Form
+}
+const state: State = {
+  tasks: ['Learn about Virtual DOM', 'Write a document'],
   form: {
-    input: "",
+    title: '',
     hasError: false
   }
-};
+}
 
-const actions: ActionTree<State> = {
-  validate: (state, input: string) => {
-    if (!input || input.length < 3 || input.length > 20) {
-      state.form.hasError = true;
+/**
+ * Actions: 各種イベント処理
+ */
+interface Actions extends ActionTree<State> {
+  /** タイトルの入力チェックを行う */
+  validate: (state: State, title: string) => boolean
+  /** 新しいタスクを作成する */
+  createTask: (state: State, title: string) => void
+  /** indexで指定したタスクを削除する */
+  removeTask: (state: State, index: number) => void
+}
+const actions: Actions = {
+  validate(state, title: string) {
+    if (!title || title.length < 3 || title.length > 20) {
+      state.form.hasError = true
     } else {
-      state.form.hasError = false;
+      state.form.hasError = false
     }
 
-    return !state.form.hasError;
+    return !state.form.hasError
   },
-  createTask: (state, title: string) => {
-    state.tasks.push(title);
-    state.form.input = "";
-  },
-  removeTask: (state, index: number) => {
-    state.tasks.splice(index, 1);
-  }
-};
 
+  createTask(state, title = '') {
+    state.tasks.push(title)
+    state.form.title = ''
+  },
+
+  removeTask(state, index: number) {
+    state.tasks.splice(index, 1)
+  }
+}
+
+/**
+ * View: 描画関連
+ */
 const view: View<State, Actions> = (state, actions) => {
+  // prettier-ignore
   return h(
-    "div",
-    { style: "padding: 20px;" },
-    h("h1", { class: "title" }, "仮想DOM完全に理解したTODOアプリ"),
+    'div',
+    {
+      class: 'nes-container is-rounded',
+      style: 'padding: 2rem;'
+    },
     h(
-      "div",
-      { class: "field" },
-      h("label", { class: "label" }, "タスクタイトル"),
-      h("input", {
-        type: "text",
-        class: "input",
-        style: "width: 200px;",
-        value: state.form.input,
-        oninput: (ev: Event) => {
-          const target = ev.target as HTMLInputElement;
-          state.form.input = target.value;
-          actions.validate(state, state.form.input);
-        }
-      }),
+      'h1',
+      {
+        class: 'title',
+        style: 'margin-bottom: 2rem;'
+      },
+      h('i', { class: 'nes-icon heart is-medium' }),
+      'Virtual DOM TODO App '
+    ),
+    h(
+      'form',
+      {
+        class: 'nes-container',
+        style: 'margin-bottom: 2rem;'
+      },
       h(
-        "button",
+        'div',
         {
-          type: "button",
-          class: "button is-primary",
-          style: "margin-left: 10px;",
-          onclick: () => {
-            if (actions.validate(state, state.form.input)) {
-              actions.createTask(state, state.form.input);
-            }
-          }
+          class: 'nes-field',
+          style: 'margin-bottom: 1rem;',
         },
-        "create"
+        h(
+          'label',
+          {
+            class: 'label',
+            for: 'task-title'
+          },
+          'Title'
+        ),
+        h('input', {
+          type: 'text',
+          id: 'task-title',
+          class: 'nes-input',
+          value: state.form.title,
+          oninput: (ev: Event) => {
+            const target = ev.target as HTMLInputElement
+            state.form.title = target.value
+            actions.validate(state, target.value)
+          }
+        }),
       ),
       h(
-        "p",
+        'p',
         {
-          class: "notification",
-          style: `display: ${state.form.hasError ? "display" : "none"}`
+          class: 'nes-text is-error',
+          style: `display: ${state.form.hasError ? 'display' : 'none'}`,
         },
-        "3〜20文字で入力してください"
+        'Enter a value between 3 and 20 characters'
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'nes-btn is-primary',
+          onclick: () => {
+            if (state.form.hasError) return
+            actions.createTask(state, state.form.title)
+          }
+        },
+        'Create'
       )
     ),
     h(
-      "ul",
-      { class: "panel" },
+      'ul',
+      { class: 'nes-list is-disc nes-container' },
       ...state.tasks.map((task, i) => {
         return h(
-          "li",
-          { class: "panel-block" },
+          'li',
+          {
+            class: 'item',
+            style: 'margin-bottom: 1rem;'
+          },
+          task,
           h(
-            "button",
+            'button',
             {
-              type: "button",
-              class: "delete",
-              style: "margin-right: 10px;",
+              type: 'button',
+              class: 'nes-btn is-error',
+              style: 'margin-left: 1rem;',
               onclick: () => actions.removeTask(state, i)
             },
-            "remove"
-          ),
-          task
-        );
+            '×'
+          )
+        )
       })
     )
-  );
-};
+  )
+}
 
-new App<State, Actions>({ el: "#app", state, view, actions });
+new App<State, Actions>({
+  el: '#app',
+  state,
+  view,
+  actions
+})
